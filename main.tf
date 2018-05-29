@@ -19,14 +19,14 @@
 module "enable_logging" {
   #source  = "devops-workflow/boolean/local"
   #version = "0.1.1"
-  source  = "git::https://github.com/WisePricer/terraform-local-boolean.git"
+  source  = "git::https://github.com/WiserSolutions/terraform-local-boolean.git"
   value   = "${var.enable_logging}"
 }
 
 module "enabled" {
   #source  = "devops-workflow/boolean/local"
   #version = "0.1.1"
-  source  = "git::https://github.com/WisePricer/terraform-local-boolean.git"
+  source  = "git::https://github.com/WiserSolutions/terraform-local-boolean.git"
   value   = "${var.enabled}"
 }
 
