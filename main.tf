@@ -31,33 +31,41 @@ module "enabled" {
 }
 
 module "label" {
-  #source        = "devops-workflow/label/local"
-  #version       = "0.1.3"
-  source        = "git::https://github.com/WisePricer/terraform-local-label.git"
-  organization  = "${var.organization}"
+  source        = "git::https://github.com/WiserSolutions/terraform-local-label.git"
+  attributes    = "${var.attributes}"
+  component     = "${var.component}"
+  delimiter     = "${var.delimiter}"
+  environment   = "${var.environment}"
+  monitor       = "${var.monitor}"
   name          = "${var.name}"
   namespace-env = "${var.namespace-env}"
   namespace-org = "${var.namespace-org}"
-  environment   = "${var.environment}"
-  delimiter     = "${var.delimiter}"
-  attributes    = "${var.attributes}"
+  organization  = "${var.organization}"
+  owner         = "${var.owner}"
+  product       = "${var.product}"
+  service       = "${var.service}"
   tags          = "${var.tags}"
+  team          = "${var.team}"
 }
 
 # TODO: need to support from var both basename and a complete name
 #       may have 1 log bucket for many apps
 module "log_bucket" {
-  #source        = "devops-workflow/label/local"
-  #version       = "0.1.3"
-  source        = "git::https://github.com/WisePricer/terraform-local-label.git"
-  organization  = "${var.organization}"
+  source        = "git::https://github.com/WiserSolutions/terraform-local-label.git"
+  attributes    = "${var.attributes}"
+  component     = "${var.component}"
+  delimiter     = "${var.delimiter}"
+  environment   = "${var.environment}"
+  monitor       = "${var.monitor}"
   name          = "${var.log_bucket_name}"
   namespace-env = true
   namespace-org = true
-  environment   = "${var.environment}"
-  delimiter     = "${var.delimiter}"
-  attributes    = "${var.attributes}"
+  organization  = "${var.organization}"
+  owner         = "${var.owner}"
+  product       = "${var.product}"
+  service       = "${var.service}"
   tags          = "${var.tags}"
+  team          = "${var.team}"
 }
 
 /*
