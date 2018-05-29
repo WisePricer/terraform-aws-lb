@@ -17,20 +17,21 @@
 #   Multiple LBs ?
 
 module "enable_logging" {
-  source  = "devops-workflow/boolean/local"
-  version = "0.1.1"
+  #source  = "devops-workflow/boolean/local"
+  #version = "0.1.1"
+  source  = "git::https://github.com/WisePricer/terraform-local-boolean.git"
   value   = "${var.enable_logging}"
 }
 
 module "enabled" {
-  source  = "devops-workflow/boolean/local"
-  version = "0.1.1"
+  #source  = "devops-workflow/boolean/local"
+  #version = "0.1.1"
+  source  = "git::https://github.com/WisePricer/terraform-local-boolean.git"
   value   = "${var.enabled}"
 }
 
 module "label" {
-  source        = "devops-workflow/label/local"
-  version       = "0.2.1"
+  source        = "git::https://github.com/WiserSolutions/terraform-local-label.git"
   attributes    = "${var.attributes}"
   component     = "${var.component}"
   delimiter     = "${var.delimiter}"
@@ -50,8 +51,7 @@ module "label" {
 # TODO: need to support from var both basename and a complete name
 #       may have 1 log bucket for many apps
 module "log_bucket" {
-  source        = "devops-workflow/label/local"
-  version       = "0.2.1"
+  source        = "git::https://github.com/WiserSolutions/terraform-local-label.git"
   attributes    = "${var.attributes}"
   component     = "${var.component}"
   delimiter     = "${var.delimiter}"
