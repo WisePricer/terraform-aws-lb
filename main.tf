@@ -13,72 +13,8 @@
 # https://www.terraform.io/docs/providers/aws/r/lb_target_group_attachment.html
 # https://www.terraform.io/docs/providers/aws/d/acm_certificate.html
 #
-# TODO Future:
-#   Multiple LBs ?
 
-module "enable_logging" {
-  #source  = "devops-workflow/boolean/local"
-  #version = "0.1.1"
-  source  = "git::https://github.com/WiserSolutions/terraform-local-boolean.git"
-  value   = "${var.enable_logging}"
-}
 
-module "enabled" {
-  #source  = "devops-workflow/boolean/local"
-  #version = "0.1.1"
-  source  = "git::https://github.com/WiserSolutions/terraform-local-boolean.git"
-  value   = "${var.enabled}"
-}
-
-module "label" {
-  source        = "git::https://github.com/WiserSolutions/terraform-local-label.git"
-  attributes    = "${var.attributes}"
-  component     = "${var.component}"
-  delimiter     = "${var.delimiter}"
-  environment   = "${var.environment}"
-  monitor       = "${var.monitor}"
-  name          = "${var.name}"
-  namespace-env = "${var.namespace-env}"
-  namespace-org = "${var.namespace-org}"
-  organization  = "${var.organization}"
-  owner         = "${var.owner}"
-  product       = "${var.product}"
-  service       = "${var.service}"
-  tags          = "${var.tags}"
-  team          = "${var.team}"
-}
-
-# TODO: need to support from var both basename and a complete name
-#       may have 1 log bucket for many apps
-module "log_bucket" {
-  source        = "git::https://github.com/WiserSolutions/terraform-local-label.git"
-  attributes    = "${var.attributes}"
-  component     = "${var.component}"
-  delimiter     = "${var.delimiter}"
-  environment   = "${var.environment}"
-  monitor       = "${var.monitor}"
-  name          = "${var.log_bucket_name}"
-  namespace-env = true
-  namespace-org = true
-  organization  = "${var.organization}"
-  owner         = "${var.owner}"
-  product       = "${var.product}"
-  service       = "${var.service}"
-  tags          = "${var.tags}"
-  team          = "${var.team}"
-}
-
-/*
-# Retrieve SSL certificate if creating SSL LB
-Support list for multiple certs ?? First pass, only 1 LB, 1 DNS, 1 cert
-SSL Cert lookup
-If SSL and given -> var.cert_domain
-elif SSL -> "*.${var.env}.${var.domain}"
-else count = 0
-*/
-locals {
-  cert_name = "*.${module.label.environment}.${module.label.organization}.com"
-}
 
 data "aws_acm_certificate" "this" {
   count = "${
@@ -87,9 +23,7 @@ data "aws_acm_certificate" "this" {
     contains(var.lb_protocols, "HTTPS")
     ? 1 : 0}"
 
-  domain = "${var.certificate_name != "" ? var.certificate_name : local.cert_name }"
-
-  #statuses = ["ISSUED"]
+  domain = "${var.certificate_name}"
 }
 
 data "aws_acm_certificate" "additional" {
@@ -103,10 +37,17 @@ data "aws_acm_certificate" "additional" {
   domain = "${var.certificate_additional_names[count.index]}"
 }
 
+module "enabled" {
+  #source  = "devops-workflow/boolean/local"
+  #version = "0.1.1"
+  source  = "git::https://github.com/WiserSolutions/terraform-local-boolean.git"
+  value   = "${var.enabled}"
+}
+
 # May need to create 2: 1 w/ logs and 1 w/o logs
 resource "aws_lb" "application" {
   count              = "${module.enabled.value && var.type == "application" ? 1 : 0}"
-  name               = "${module.label.id_32}"
+  name               = "${var.name}-lb-application"
   internal           = "${var.internal}"
   load_balancer_type = "${var.type}"
 
@@ -115,31 +56,12 @@ resource "aws_lb" "application" {
   idle_timeout               = "${var.idle_timeout}"
   security_groups            = ["${var.security_groups}"]
   subnets                    = ["${var.subnets}"]
-  tags                       = "${module.label.tags}"
-
-  #ip_address_type     = "${}"
-
-  # Doesn't seem to be able to disable properly
-  #  access_logs {
-  #    bucket  = "${module.log_bucket.id}"  # ? Cannot be empty and must exist
-  #    prefix  = "${var.log_location_prefix}"
-  #    enabled = "${module.enable_logging.value}"
-  #  }
-  #  subnet_mapping {
-  #    subnet_id     = "${}"
-  #    allocation_id = "${}"
-  #  }
-  #  timeouts {
-  #    create  =
-  #    delete  =
-  #    update  =
-  #  }
-  depends_on = ["aws_s3_bucket.log_bucket"]
+  tags                       = "${var.name}-lb-application"
 }
 
 resource "aws_lb" "network" {
   count              = "${module.enabled.value && var.type == "network" ? 1 : 0}"
-  name               = "${module.label.id_32}"
+  name               = "${var.name}-lb-network"
   internal           = "${var.internal}"
   load_balancer_type = "${var.type}"
 
@@ -147,75 +69,7 @@ resource "aws_lb" "network" {
   enable_deletion_protection       = "${var.enable_deletion_protection}"
   idle_timeout                     = "${var.idle_timeout}"
   subnets                          = ["${var.subnets}"]
-  tags                             = "${module.label.tags}"
-
-  #ip_address_type     = "${}"
-
-  /*
-  subnet_mapping {
-    subnet_id     = "${}"
-    allocation_id = "${}"
-  }
-  */
-  /*
-  timeouts {
-    create  =
-    delete  =
-    update  =
-  }
-  */
-}
-
-data "aws_iam_policy_document" "bucket_policy" {
-  count = "${
-    module.enabled.value &&
-    module.enable_logging.value &&
-    var.type == "application" &&
-    var.create_log_bucket ? 1 : 0}"
-
-  statement {
-    sid = "AllowToPutLoadBalancerLogsToS3Bucket"
-
-    actions = [
-      "s3:PutObject",
-    ]
-
-    resources = [
-      "arn:aws:s3:::${module.log_bucket.id}/${var.log_location_prefix}/AWSLogs/${data.aws_caller_identity.current.account_id}/*",
-    ]
-
-    principals {
-      type        = "AWS"
-      identifiers = ["arn:aws:iam::${data.aws_elb_service_account.main.id}:root"]
-    }
-  }
-}
-
-resource "aws_s3_bucket" "log_bucket" {
-  count = "${
-    module.enabled.value &&
-    module.enable_logging.value &&
-    var.type == "application" &&
-    var.create_log_bucket ? 1 : 0}"
-
-  bucket = "${module.log_bucket.id}"
-
-  #acl
-  policy        = "${var.bucket_policy == "" ? data.aws_iam_policy_document.bucket_policy.json : var.bucket_policy}"
-  force_destroy = "${var.force_destroy_log_bucket}"
-  tags          = "${merge(var.tags, map("Name", format("%s", var.log_bucket_name)))}"
-
-  #tags            = "${module.label.tags}"
-  lifecycle_rule {
-    id      = "log-expiration"
-    enabled = "true"
-
-    expiration {
-      days = "7" # Change to var
-    }
-
-    #tags  = "${module.label.tags}"
-  }
+  tags                             = "${var.name}-lb-network"
 }
 
 locals {
@@ -228,23 +82,6 @@ locals {
   lb_tcp_ports         = "${length(compact(split(",", var.lb_tcp_ports))) > 0 ? var.lb_tcp_ports : var.ports}"
 }
 
-/* Debugging
-output "ports" { value = "${var.ports}" }
-output "instance_http_ports" { value = "${local.instance_http_ports}" }
-output "instance_https_ports" { value = "${local.instance_https_ports}" }
-output "instance_tcp_ports" { value = "${local.instance_tcp_ports}" }
-output "lb_http_ports" { value = "${local.lb_http_ports}" }
-output "lb_https_ports" { value = "${local.lb_https_ports}" }
-output "lb_tcp_ports" { value = "${local.lb_tcp_ports}" }
-*/
-/*
-locals {
-  backend_protocol = "${var.type == "network" ? "TCP" : upper(var.backend_protocol)}"
-  #all_ports = "${concat(split(",", var.port), var.additional_ports)}"
-  #all_app_ports = "${concat(var.http_instance_ports, var.https_instance_ports)}"
-}
-*/
-
 resource "aws_lb_target_group" "application-http" {
   count = "${
     module.enabled.value &&
@@ -252,17 +89,12 @@ resource "aws_lb_target_group" "application-http" {
     contains(var.lb_protocols, "HTTP")
     ? length(compact(split(",", local.instance_http_ports))) : 0}"
 
-  name = "${join("-",
-    list(substr(module.label.id_org,0,26 <= length(module.label.id_org) ? 26 : length(module.label.id_org))),
-    list(element(compact(split(",",local.instance_http_ports)), count.index))
-    )}"
+  name = "${var.name}-aws_lb_target_group_http_app"
 
   port     = "${element(compact(split(",",local.instance_http_ports)), count.index)}"
   protocol = "HTTP"
   vpc_id   = "${var.vpc_id}"
 
-  #deregistration_delay  = "${}"
-  #target_type           = "${}"
   health_check {
     interval            = "${var.health_check_interval}"
     path                = "${var.health_check_path}"
@@ -281,7 +113,7 @@ resource "aws_lb_target_group" "application-http" {
     enabled         = "${var.cookie_duration > 0 ? true : false}"
   }
 
-  tags = "${module.label.tags}"
+  tags = "${var.name}-aws_lb_target_group_http_app"
 
   lifecycle {
     create_before_destroy = true
@@ -295,17 +127,12 @@ resource "aws_lb_target_group" "application-https" {
     contains(var.lb_protocols, "HTTPS")
     ? length(compact(split(",", local.instance_https_ports))) : 0}"
 
-  name = "${join("-",
-    list(substr(module.label.id_org,0,26 <= length(module.label.id_org) ? 26 : length(module.label.id_org))),
-    list(element(compact(split(",",local.instance_https_ports)), count.index))
-    )}"
+  name = "${var.name}-aws_lb_target_group_https_app"
 
   port     = "${element(compact(split(",",local.instance_https_ports)), count.index)}"
   protocol = "HTTP"
   vpc_id   = "${var.vpc_id}"
 
-  #deregistration_delay  = "${}"
-  #target_type           = "${}"
   health_check {
     interval            = "${var.health_check_interval}"
     path                = "${var.health_check_path}"
@@ -324,36 +151,11 @@ resource "aws_lb_target_group" "application-https" {
     enabled         = "${var.cookie_duration > 0 ? true : false}"
   }
 
-  tags = "${module.label.tags}"
+  tags = "${var.name}-aws_lb_target_group_https_app"
 
   lifecycle {
     create_before_destroy = true
   }
-}
-
-# Build NLB Target Group health check stansa
-locals {
-  health_base = {
-    interval            = "10"
-    port                = "${var.health_check_port}"
-    healthy_threshold   = "${var.health_check_healthy_threshold}"
-    unhealthy_threshold = "${var.health_check_unhealthy_threshold}"
-    protocol            = "${var.health_check_protocol}"
-  }
-
-  http = {
-    path    = "${var.health_check_path}"
-    matcher = "200-399"
-    timeout = "6"
-  }
-
-  h_keys      = "${join(",", keys(local.health_base))}"
-  h_vals      = "${join(",", values(local.health_base))}"
-  http_keys   = "${join(",", keys(local.http))}"
-  http_vals   = "${join(",", values(local.http))}"
-  keys        = "${ var.health_check_protocol == "TCP" ? local.h_keys : "${local.h_keys},${local.http_keys}" }"
-  vals        = "${ var.health_check_protocol == "TCP" ? local.h_vals : "${local.h_vals},${local.http_vals}" }"
-  healthcheck = "${zipmap(split(",", local.keys), split(",", local.vals))}"
 }
 
 resource "aws_lb_target_group" "network" {
@@ -362,20 +164,15 @@ resource "aws_lb_target_group" "network" {
     var.type == "network"
     ? length(compact(split(",", local.instance_tcp_ports))) : 0}"
 
-  name = "${join("-",
-    list(substr(module.label.id_org,0,26 <= length(module.label.id_org) ? 26 : length(module.label.id_org))),
-    list(element(compact(split(",",local.instance_tcp_ports)), count.index))
-    )}"
+  name = "${var.name}-aws_lb_target_group_network"
 
   health_check = "${list(local.healthcheck)}"
   port         = "${element(compact(split(",",local.instance_tcp_ports)), count.index)}"
   protocol     = "TCP"
   stickiness   = []
-  tags         = "${module.label.tags}"
+  tags         = "${var.name}-aws_lb_target_group_network"
   vpc_id       = "${var.vpc_id}"
 
-  #deregistration_delay  = "${}"
-  #target_type           = "${}"
   lifecycle {
     create_before_destroy = true
   }
@@ -417,9 +214,6 @@ resource "aws_lb_listener" "https" {
   }
 }
 
-# Additional certs for https listener on first port
-# TODO: figure out way to add to all ports
-#   temp: could add another stansa for second port if >= 2 https ports
 resource "aws_lb_listener_certificate" "https" {
   count = "${
     module.enabled.value &&
@@ -447,18 +241,28 @@ resource "aws_lb_listener" "network" {
   }
 }
 
-/*
-resource "aws_lb_listener_rule" "this" {
-  count
-  listener_arn
-  priority
-  action {
-    target_group_arn
-    type
+# Build NLB Target Group health check stansa
+locals {
+  health_base = {
+    interval            = "10"
+    port                = "${var.health_check_port}"
+    healthy_threshold   = "${var.health_check_healthy_threshold}"
+    unhealthy_threshold = "${var.health_check_unhealthy_threshold}"
+    protocol            = "${var.health_check_protocol}"
   }
-  condition {
-    field
-    values
+
+  http = {
+    path    = "${var.health_check_path}"
+    matcher = "200-399"
+    timeout = "6"
   }
+
+  h_keys      = "${join(",", keys(local.health_base))}"
+  h_vals      = "${join(",", values(local.health_base))}"
+  http_keys   = "${join(",", keys(local.http))}"
+  http_vals   = "${join(",", values(local.http))}"
+  keys        = "${ var.health_check_protocol == "TCP" ? local.h_keys : "${local.h_keys},${local.http_keys}" }"
+  vals        = "${ var.health_check_protocol == "TCP" ? local.h_vals : "${local.h_vals},${local.http_vals}" }"
+  healthcheck = "${zipmap(split(",", local.keys), split(",", local.vals))}"
 }
-*/
+
