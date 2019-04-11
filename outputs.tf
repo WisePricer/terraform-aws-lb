@@ -26,6 +26,9 @@ output "zone_id" {
   value       = "${element(concat(aws_lb.application.*.zone_id, aws_lb.network.*.zone_id, list("")), 0)}"
 }
 
+# arn_suffix
+# canonical_hosted_zone_id
+
 //
 // LB Listener attributes
 //
@@ -116,6 +119,9 @@ output "target_group_ids" {
   description = "IDs of all the target groups"
   value       = "${compact(concat(aws_lb_target_group.application-http.*.id,aws_lb_target_group.application-https.*.id,aws_lb_target_group.network.*.id))}"
 }
+
+# arn_suffix
+# name
 
 //
 // Misc
