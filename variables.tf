@@ -1,20 +1,99 @@
 //
-// Module specific Variables
+// Variables specific to module label
 //
+variable "attributes" {
+  description = "Suffix name with additional attributes (policy, role, etc.)"
+  type        = "list"
+  default     = []
+}
+
+variable "component" {
+  description = "TAG: Underlying, dedicated piece of service (Cache, DB, ...)"
+  type        = "string"
+  default     = "UNDEF-LB"
+}
+
+variable "delimiter" {
+  description = "Delimiter to be used between `name`, `namespaces`, `attributes`, etc."
+  type        = "string"
+  default     = "-"
+}
+
 variable "environment" {
   description = "Environment (ex: `dev`, `qa`, `stage`, `prod`). (Second or top level namespace. Depending on namespacing options)"
   type        = "string"
 }
 
-variable "name" {
-  description = "Default name for the load balancer"
-  default = "load_balancer"
+variable "monitor" {
+  description = "TAG: Should resource be monitored"
+  type        = "string"
+  default     = "UNDEF-LB"
 }
 
+variable "name" {
+  description = "Base name for resource"
+  type        = "string"
+}
+
+variable "namespace-env" {
+  description = "Prefix name with the environment. If true, format is: <env>-<name>"
+  default     = true
+}
+
+variable "namespace-org" {
+  description = "Prefix name with the organization. If true, format is: <org>-<env namespaced name>. If both env and org namespaces are used, format will be <org>-<env>-<name>"
+  default     = false
+}
+
+variable "organization" {
+  description = "Organization name (Top level namespace)"
+  type        = "string"
+  default     = ""
+}
+
+variable "owner" {
+  description = "TAG: Owner of the service"
+  type        = "string"
+  default     = "UNDEF-LB"
+}
+
+variable "product" {
+  description = "TAG: Company/business product"
+  type        = "string"
+  default     = "UNDEF-LB"
+}
+
+variable "service" {
+  description = "TAG: Application (microservice) name"
+  type        = "string"
+  default     = "UNDEF-LB"
+}
+
+variable "tags" {
+  description = "A map of additional tags"
+  type        = "map"
+  default     = {}
+}
+
+variable "team" {
+  description = "TAG: Department/team of people responsible for service"
+  type        = "string"
+  default     = "UNDEF-LB"
+}
+
+//
+// Module specific Variables
+//
 variable "enabled" {
   description = "Set to false to prevent the module from creating anything"
   default     = true
 }
+
+variable "enable_logging" {
+  description = "Enable the LB to write log entries to S3."
+  default     = false
+}
+
 variable "certificate_additional_names" {
   description = "List of additional names of SSL Certificates to look up in ACM and use"
   type        = "list"
@@ -68,6 +147,34 @@ variable "subnets" {
 variable "type" {
   description = "Type of load balancer. (`application` or `network`)"
   default     = "application"
+}
+
+//
+// Load Balancer Logging settings
+//
+variable "bucket_policy" {
+  description = "An S3 bucket policy to apply to the log bucket. If not provided, a minimal policy will be generated from other variables."
+  default     = ""
+}
+
+variable "create_log_bucket" {
+  description = "Create the S3 bucket (named with the log_bucket_name var) and attach a policy to allow LB logging."
+  default     = false
+}
+
+variable "force_destroy_log_bucket" {
+  description = "If set to true and if the log bucket already exists, it will be destroyed and recreated."
+  default     = false
+}
+
+variable "log_bucket_name" {
+  description = "S3 bucket for storing LB access logs. To create the bucket \"create_log_bucket\" should be set to true."
+  default     = ""
+}
+
+variable "log_location_prefix" {
+  description = "S3 prefix within the log_bucket_name under which logs are stored."
+  default     = ""
 }
 
 //
