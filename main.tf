@@ -14,8 +14,6 @@
 # https://www.terraform.io/docs/providers/aws/d/acm_certificate.html
 #
 
-
-
 data "aws_acm_certificate" "this" {
   count = "${
     module.enabled.value &&
@@ -38,13 +36,10 @@ data "aws_acm_certificate" "additional" {
 }
 
 module "enabled" {
-  #source  = "devops-workflow/boolean/local"
-  #version = "0.1.1"
   source  = "git::https://github.com/WiserSolutions/terraform-local-boolean.git"
   value   = "${var.enabled}"
 }
 
-# May need to create 2: 1 w/ logs and 1 w/o logs
 resource "aws_lb" "application" {
   count              = "${module.enabled.value && var.type == "application" ? 1 : 0}"
   name               = "${var.name}-lb-application"
