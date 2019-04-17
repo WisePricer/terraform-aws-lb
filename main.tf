@@ -133,7 +133,7 @@ resource "aws_lb_target_group" "application-https" {
     contains(var.lb_protocols, "HTTPS")
     ? length(compact(split(",", local.instance_https_ports))) : 0}"
 
-  name = "aws_lb_target_group_https_app"
+  name = "aws-lb-target-group-https-app"
 
   port     = "${element(compact(split(",",local.instance_https_ports)), count.index)}"
   protocol = "HTTP"
@@ -159,7 +159,7 @@ resource "aws_lb_target_group" "application-https" {
 
   tags 
   {
-    Name = "aws_lb_target_group_https_app"
+    Name = "aws-lb-target-group-https-app"
     Environment = "${var.env}"
   } 
 
@@ -174,7 +174,7 @@ resource "aws_lb_target_group" "network" {
     var.type == "network"
     ? length(compact(split(",", local.instance_tcp_ports))) : 0}"
 
-  name = "aws_lb_target_group_network"
+  name = "aws-lb-target-group-network"
 
   health_check = "${list(local.healthcheck)}"
   port         = "${element(compact(split(",",local.instance_tcp_ports)), count.index)}"
@@ -182,7 +182,7 @@ resource "aws_lb_target_group" "network" {
   stickiness   = []
   tags 
   {
-    Name = "aws_lb_target_group_network"
+    Name = "aws-lb-target-group-network"
     Environment = "${var.env}"
   } 
   vpc_id       = "${var.vpc_id}"
