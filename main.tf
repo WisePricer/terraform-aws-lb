@@ -42,7 +42,7 @@ module "enabled" {
 
 resource "aws_lb" "application" {
   count              = "${module.enabled.value && var.type == "application" ? 1 : 0}"
-  name               = "${var.name}-lb-application"
+  name               = "${var.name}"
   internal           = "${var.internal}"
   load_balancer_type = "${var.type}"
 
@@ -51,7 +51,10 @@ resource "aws_lb" "application" {
   idle_timeout               = "${var.idle_timeout}"
   security_groups            = ["${var.security_groups}"]
   subnets                    = ["${var.subnets}"]
-  tags                       = "${var.name}-lb-application"
+  tags 
+  {
+    Name = "${var.name}-lb-application"
+  }
 }
 
 resource "aws_lb" "network" {
@@ -64,7 +67,10 @@ resource "aws_lb" "network" {
   enable_deletion_protection       = "${var.enable_deletion_protection}"
   idle_timeout                     = "${var.idle_timeout}"
   subnets                          = ["${var.subnets}"]
-  tags                             = "${var.name}-lb-network"
+  tags 
+  {
+    Name = "${var.name}-lb-network"
+  }
 }
 
 locals {
@@ -84,7 +90,7 @@ resource "aws_lb_target_group" "application-http" {
     contains(var.lb_protocols, "HTTP")
     ? length(compact(split(",", local.instance_http_ports))) : 0}"
 
-  name = "${var.name}-aws_lb_target_group_http_app"
+  name = "${var.name}"
 
   port     = "${element(compact(split(",",local.instance_http_ports)), count.index)}"
   protocol = "HTTP"
@@ -107,9 +113,11 @@ resource "aws_lb_target_group" "application-http" {
     cookie_duration = "${var.cookie_duration > 0 ? var.cookie_duration : 1}"
     enabled         = "${var.cookie_duration > 0 ? true : false}"
   }
-
-  tags = "${var.name}-aws_lb_target_group_http_app"
-
+  tags 
+  {
+    Name = {"${var.name}-aws_lb_target_group_http_app"}
+  }
+  
   lifecycle {
     create_before_destroy = true
   }
@@ -146,7 +154,10 @@ resource "aws_lb_target_group" "application-https" {
     enabled         = "${var.cookie_duration > 0 ? true : false}"
   }
 
-  tags = "${var.name}-aws_lb_target_group_https_app"
+  tags 
+  {
+    Name = {"${var.name}-aws_lb_target_group_https_app"}
+  } 
 
   lifecycle {
     create_before_destroy = true
@@ -165,7 +176,10 @@ resource "aws_lb_target_group" "network" {
   port         = "${element(compact(split(",",local.instance_tcp_ports)), count.index)}"
   protocol     = "TCP"
   stickiness   = []
-  tags         = "${var.name}-aws_lb_target_group_network"
+  tags 
+  {
+    Name = "${var.name}-aws_lb_target_group_network"
+  } 
   vpc_id       = "${var.vpc_id}"
 
   lifecycle {

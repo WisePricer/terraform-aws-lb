@@ -8,7 +8,7 @@ variable "environment" {
 
 variable "name" {
   description = "Default name for the load balancer"
-  default = "load_balancer"
+  default = "load-balancer"
 }
 
 variable "enabled" {
