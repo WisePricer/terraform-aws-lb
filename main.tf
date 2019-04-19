@@ -14,6 +14,10 @@
 # https://www.terraform.io/docs/providers/aws/d/acm_certificate.html
 #
 
+locals {
+  cert_name = "*.${module.label.environment}.${module.label.organization}.com"
+}
+
 data "aws_acm_certificate" "this" {
   count = "${
     module.enabled.value &&
@@ -21,7 +25,7 @@ data "aws_acm_certificate" "this" {
     contains(var.lb_protocols, "HTTPS")
     ? 1 : 0}"
 
-  domain = "${var.certificate_name}"
+  domain = "${var.certificate_name != "" ? var.certificate_name : local.cert_name}"
 }
 
 data "aws_acm_certificate" "additional" {
