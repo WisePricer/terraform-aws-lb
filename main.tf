@@ -15,7 +15,7 @@
 #
 
 locals {
-  cert_name = "*.${module.label.environment}.${module.label.organization}.com"
+  cert_name = "*.${var.environment}.${var.organization}.com"
 }
 
 data "aws_acm_certificate" "this" {
@@ -40,8 +40,8 @@ data "aws_acm_certificate" "additional" {
 }
 
 module "enabled" {
-  source  = "git::https://github.com/WiserSolutions/terraform-local-boolean.git"
-  value   = "${var.enabled}"
+  source = "git::https://github.com/WiserSolutions/terraform-local-boolean.git"
+  value  = "${var.enabled}"
 }
 
 resource "aws_lb" "application" {
@@ -55,9 +55,9 @@ resource "aws_lb" "application" {
   idle_timeout               = "${var.idle_timeout}"
   security_groups            = ["${var.security_groups}"]
   subnets                    = ["${var.subnets}"]
-  tags 
-  {
-    Name = "application-load-balancer"
+
+  tags {
+    Name        = "application-load-balancer"
     Environment = "${var.env}"
   }
 }
@@ -72,9 +72,9 @@ resource "aws_lb" "network" {
   enable_deletion_protection       = "${var.enable_deletion_protection}"
   idle_timeout                     = "${var.idle_timeout}"
   subnets                          = ["${var.subnets}"]
-  tags 
-  {
-    Name = "network-load-balancer"
+
+  tags {
+    Name        = "network-load-balancer"
     Environment = "${var.env}"
   }
 }
@@ -119,12 +119,12 @@ resource "aws_lb_target_group" "application-http" {
     cookie_duration = "${var.cookie_duration > 0 ? var.cookie_duration : 1}"
     enabled         = "${var.cookie_duration > 0 ? true : false}"
   }
-  tags 
-  {
-    Name = "application-http-target-group"
+
+  tags {
+    Name        = "application-http-target-group"
     Environment = "${var.env}"
   }
-  
+
   lifecycle {
     create_before_destroy = true
   }
@@ -161,11 +161,10 @@ resource "aws_lb_target_group" "application-https" {
     enabled         = "${var.cookie_duration > 0 ? true : false}"
   }
 
-  tags 
-  {
-    Name = "aws-lb-target-group-https-app"
+  tags {
+    Name        = "aws-lb-target-group-https-app"
     Environment = "${var.env}"
-  } 
+  }
 
   lifecycle {
     create_before_destroy = true
@@ -184,12 +183,13 @@ resource "aws_lb_target_group" "network" {
   port         = "${element(compact(split(",",local.instance_tcp_ports)), count.index)}"
   protocol     = "TCP"
   stickiness   = []
-  tags 
-  {
-    Name = "aws-lb-target-group-network"
+
+  tags {
+    Name        = "aws-lb-target-group-network"
     Environment = "${var.env}"
-  } 
-  vpc_id       = "${var.vpc_id}"
+  }
+
+  vpc_id = "${var.vpc_id}"
 
   lifecycle {
     create_before_destroy = true
@@ -283,4 +283,3 @@ locals {
   vals        = "${ var.health_check_protocol == "TCP" ? local.h_vals : "${local.h_vals},${local.http_vals}" }"
   healthcheck = "${zipmap(split(",", local.keys), split(",", local.vals))}"
 }
-

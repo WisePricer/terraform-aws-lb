@@ -4,18 +4,19 @@
 variable "env" {
   description = "Environment (ex: `dev`, `qa`, `stage`, `prod`). (Second or top level namespace. Depending on namespacing options)"
   type        = "string"
-  default = "prod"
+  default     = "prod"
 }
 
 variable "name" {
   description = "Default name for the load balancer"
-  default = "load-balancer"
+  default     = "load-balancer"
 }
 
 variable "enabled" {
   description = "Set to false to prevent the module from creating anything"
   default     = true
 }
+
 variable "certificate_additional_names" {
   description = "List of additional names of SSL Certificates to look up in ACM and use"
   type        = "list"
